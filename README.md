@@ -1,66 +1,242 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Naravno! Evo kompletne dokumentacije za tvoj projekat, u formatu koji je pogodan za README fajl, sa svim objašnjenjima i uputstvima. Dodao sam mesta za screenshotove i detaljno objasnio implementaciju rate limiting-a, OAuth2 autentifikacije i Swagger dokumentacije.
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+---
 
-## About Laravel
+# **ApeironZasititaPOslovnihSistema**
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## **Opis projekta**
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Projekat **ApeironZasititaPOslovnihSistema** implementira zaštitu poslovnih sistema u Laravelu koristeći tehnologije kao što su **rate limiting**, **OAuth2** autentifikaciju putem **Passport** i generisanje **Swagger** dokumentacije za API.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### **Ključne tehnologije**:
+- Laravel
+- Passport za OAuth2 autentifikaciju
+- Swagger za automatsku dokumentaciju API-ja
+- Rate Limiting za zaštitu od preopterećenja
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## **1. Rate Limiting Implementacija u Laravelu**
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### **Šta je rate limiting?**
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Rate limiting** je zaštitna tehnika koja omogućava kontrolu broja zahteva prema serveru u određenom vremenskom intervalu. U Laravelu je implementacija rate limiting-a jednostavna i može se konfigurirati putem **middleware-a**.
 
-## Laravel Sponsors
+### **Kako je implementiran rate limiter u Laravelu?**
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+1. **Default Rate Limiting**:
+   Laravel dolazi sa **default rate limiter-om** koji se može jednostavno konfigurirati u **`RouteServiceProvider`** ili direktno u kontrolerima. Laravel koristi `ThrottleRequests` middleware da bi zaštitio API rute od preopterećenja.
 
-### Premium Partners
+2. **Konfiguracija rate limiter-a**:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+   U projektu, rate limiter je konfigurisan u fajlu **`RouteServiceProvider.php`**.
 
-## Contributing
+   ```php
+   protected function configureRateLimiting(): void
+   {
+       // Ograničava broj zahteva za login i registraciju na 5 po minuti
+       RateLimiter::for('auth', function (Request $request) {
+           return Limit::perMinute(5)->response(function () {
+               return response()->json(
+                   ['Too many requests. Try again later.', 429],
+                   429
+               );
+           });
+       });
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+       // Ograničava broj zahteva za API rute na 10 po minuti
+       RateLimiter::for('api', function (Request $request) {
+           return Limit::perMinute(10)->response(function () {
+               return response()->json(
+                   ['Too many requests. Try again later.', 429],
+                   429
+               );
+           });
+       });
+   }
+   ```
 
-## Code of Conduct
+### **Objašnjenje**:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **`RateLimiter::for('auth', ...)`**:
+   - Ovaj limiter se koristi za rute **registracije** i **login**.
+   - Ograničava broj zahteva na **5 zahteva po minuti**.
+   - Ako korisnik premaši ovaj broj, server će vratiti odgovor sa status kodom **429**: `Too many requests. Try again later.`.
 
-## Security Vulnerabilities
+- **`RateLimiter::for('api', ...)`**:
+   - Ovaj limiter se koristi za sve **API rute** nakon što korisnik bude autentifikovan.
+   - Ograničava broj zahteva na **10 zahteva po minuti**.
+   - Ako korisnik premaši ovaj broj, server će vratiti odgovor sa status kodom **429**: `Too many requests. Try again later.`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### **Korišćenje rate limiting-a u rutama**
 
-## License
+Nakon što je rate limiting konfigurisan, koristiš ga u rutama kroz middleware:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```php
+Route::post('user/register', [ApiController::class, 'register'])->middleware('throttle:auth');
+Route::post('user/login', [ApiController::class, 'login'])->middleware('throttle:auth');
+
+Route::group([
+    'middleware' => ['auth:api', 'throttle:api'],
+], function () {
+
+    Route::get('user/me', [ApiController::class, 'profile']);
+    Route::get('user/refresh-token', [ApiController::class, 'refreshToken']);
+    Route::get('user/logout', [ApiController::class, 'logout']);
+
+    Route::post('blog', action: [BlogController::class, 'createBlog']);
+    Route::get('blog', [BlogController::class, 'listBlog']);
+    Route::get('blog/me', [BlogController::class, 'myBlog']);
+    Route::get('blog/{id}', [BlogController::class, 'getById']);
+    Route::put('blog', [BlogController::class, 'updateBlog']);
+    Route::delete('blog/{id}', [BlogController::class, 'deleteBlog']);
+});
+```
+
+### **Objašnjenje**:
+
+- **`Route::post('user/register', ...)`** i **`Route::post('user/login', ...)`**:
+   - Ove rute koriste **middleware `throttle:auth`**, koji se odnosi na rate limiter za autentifikaciju. To znači da će korisnici moći da pošalju najviše **5 zahteva po minuti** za registraciju i login.
+   
+- **`Route::group(['middleware' => ['auth:api', 'throttle:api'], ...])`**:
+   - Ovaj **middleware** grupiše rute koje su zaštićene autentifikacijom (`auth:api`) i rate limitingom (`throttle:api`).
+   - API rute unutar ove grupe (kao što su `user/me`, `blog`, itd.) omogućavaju korisnicima da izvrše najviše **10 zahteva po minuti** nakon što se autentifikuju.
+
+---
+
+## **2. Swagger Dokumentacija u Laravelu**
+
+### **Šta je Swagger?**
+
+**Swagger** omogućava automatsko generisanje interaktivne dokumentacije za API. Sa Swagger UI-om možeš testirati API direktno iz browser-a.
+
+### **Kako implementirati Swagger u Laravel?**
+
+1. **Instalacija potrebnih paketa**:
+
+   Da bi koristiš Swagger u Laravelu, koristi **`darkaonline/l5-swagger`** paket:
+
+   ```bash
+   composer require darkaonline/l5-swagger
+   ```
+
+2. **Objavljivanje konfiguracije Swagger-a**:
+
+   Objavi konfiguraciju:
+   ```bash
+   php artisan vendor:publish --provider="L5Swagger\L5SwaggerServiceProvider"
+   ```
+
+3. **Generisanje Swagger dokumentacije**:
+
+   Swagger dokumentacija može se generisati automatski. Dodaj anotacije u tvoje rute i kontrolere:
+
+   ```php
+   /**
+    * @OA\Get(
+    *     path="/api/user",
+    *     summary="Return current user",
+    *     @OA\Response(
+    *         response=200,
+    *         description="Successful response",
+    *     ),
+    * )
+    */
+   Route::middleware('auth:api')->get('/user', function (Request $request) {
+       return $request->user();
+   });
+   ```
+
+4. **Pristup Swagger dokumentaciji**:
+
+   Nakon što je sve podešeno, Swagger dokumentacija će biti dostupna na:
+   ```bash
+   http://localhost:8000/api/documentation
+   ```
+
+---
+
+## **3. OAuth2 Implementacija sa Laravel Passport**
+
+### **Šta je OAuth2?**
+
+**OAuth2** je industrijski standard za autentifikaciju i autorizaciju korisnika. Korišćenjem **Passport** paketa u Laravelu, možemo jednostavno implementirati OAuth2 autentifikaciju.
+
+### **Kako implementirati OAuth2 sa Laravel Passport?**
+
+1. **Instalacija Laravel Passport-a**:
+   
+   Da bi koristiš **Passport** za OAuth2 autentifikaciju, prvo moraš instalirati paket:
+   ```bash
+   composer require laravel/passport
+   ```
+
+2. **Pokretanje Passport migracija**:
+   
+   Passport dolazi sa potrebnim migracijama za kreiranje tabela u bazi podataka. Pokreni migracije komandom:
+   ```bash
+   php artisan migrate
+   ```
+
+3. **Registrovanje Passport servisa**:
+
+   Nakon instalacije, registruj Passport servis u `config/app.php`:
+
+   ```php
+   'providers' => [
+       ...
+       Laravel\Passport\PassportServiceProvider::class,
+   ],
+   ```
+
+4. **Objavljivanje konfiguracije Passport-a**:
+   
+   Objavi konfiguraciju Passport-a:
+   ```bash
+   php artisan passport:install
+   ```
+
+5. **Kreiranje AuthController-a i ruta**:
+
+   Nakon što je Passport postavljen, kreiraj rutu za autentifikaciju putem OAuth2:
+
+   ```php
+   Route::post('login', 'AuthController@login');
+   Route::post('register', 'AuthController@register');
+   Route::middleware('auth:api')->get('/user', function (Request $request) {
+       return $request->user();
+   });
+   ```
+
+---
+
+## **4. Kako koristiti projekat**
+
+1. Kloniraj projekat:
+   ```bash
+   git clone https://github.com/abdijanovic03/ApeironZasititaPOslovnihSistema.git
+   ```
+
+2. Instaliraj zavisnosti:
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. Pokreni aplikaciju:
+   ```bash
+   php artisan serve
+   ```
+
+4. Poseti Swagger dokumentaciju na `http://localhost:8000/api/documentation`.
+
+---
+
+## **Zaključak**
+
+Ovaj projekat koristi Laravel za implementaciju **rate limiting-a**, **OAuth2 autentifikacije** preko **Passport-a** i generisanje **Swagger** dokumentacije. Ove komponente poboljšavaju sigurnost i omogućavaju lako testiranje i integraciju sa drugim sistemima.
+
+---
+
+**Napomena**: Dodaj odgovarajuće screenshotove u dokumentaciju na mesta označena sa **(Slika ovde)** kako bi prikazao rad sistema u praksi.
+
