@@ -26,7 +26,7 @@ class BlogController extends Controller
 {
     /**
      * @OA\Post(
-     *     path="/api/blogs",
+     *     path="/api/blog",
      *     summary="Create a new blog",
      *     tags={"Blog"},
      *     security={{"bearerAuth":{}}},
@@ -34,12 +34,15 @@ class BlogController extends Controller
      *     @OA\RequestBody(
      *         required=true,
      *
-     *         @OA\JsonContent(
-     *             required={"title", "content"},
+     *         @OA\MediaType(
+     *             mediaType="multipart/form-data",
      *
-     *             @OA\Property(property="title", type="string", example="My Blog Title"),
-     *             @OA\Property(property="content", type="string", example="Blog content goes here"),
-     *             @OA\Property(property="banner_image", type="string", format="binary", description="Optional banner image")
+     *             @OA\Schema(
+     *                 required={"title", "content"},
+     *
+     *                 @OA\Property(property="title", type="string", example="My Blog Title"),
+     *                 @OA\Property(property="content", type="string", example="Blog content goes here"),
+     *             )
      *         )
      *     ),
      *
@@ -56,38 +59,25 @@ class BlogController extends Controller
             'content' => 'required',
         ]);
 
-        $banner_image = null;
-
-        if ($request->banner_image !== null) {
-            echo 1;
-            $imageObject = $request->banner_image;
-
-            $fileExtension = $imageObject->getClientOriginalExtension();
-            $imageFileName = time().'.'.$fileExtension;
-            $imageObject->move(public_path('images'), $imageFileName);
-
-            $banner_image = 'images/'.$imageFileName;
-        }
-
         $blog = Blogs::create([
             'title' => $request->title,
             'user_id' => Auth::id(),
             'content' => $request->content,
-            'banner_image' => $banner_image,
         ]);
 
         return response()->json([
             'status' => '201',
             'message' => 'Blog created successfully',
-            'data' => $blog,
-        ]);
+            'date' => $blog,
+        ], 201);
     }
 
     /**
      * @OA\Get(
-     *     path="/api/blogs",
+     *     path="/api/blog",
      *     summary="List all blogs",
      *     tags={"Blog"},
+     *     security={{"bearerAuth":{}}},
      *
      *     @OA\Response(
      *         response=200,
@@ -113,7 +103,7 @@ class BlogController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/blogs/mine",
+     *     path="/api/blog/me",
      *     summary="List blogs created by the authenticated user",
      *     tags={"Blog"},
      *     security={{"bearerAuth":{}}},
@@ -137,9 +127,10 @@ class BlogController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/blogs/{id}",
+     *     path="/api/blog/{id}",
      *     summary="Get a blog by ID",
      *     tags={"Blog"},
+     *     security={{"bearerAuth":{}}},
      *
      *     @OA\Parameter(
      *         name="id",
@@ -157,7 +148,7 @@ class BlogController extends Controller
      */
     public function getById($id)
     {
-        $blog = Blogs::find($id);
+        $blog = Blogs::findOrFail($id);
 
         return response()->json([
             'status' => 200,
@@ -168,18 +159,10 @@ class BlogController extends Controller
 
     /**
      * @OA\Put(
-     *     path="/api/blogs/{id}",
+     *     path="/api/blog",
      *     summary="Update a blog",
      *     tags={"Blog"},
      *     security={{"bearerAuth":{}}},
-     *
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *
-     *         @OA\Schema(type="integer")
-     *     ),
      *
      *     @OA\RequestBody(
      *         required=true,
@@ -187,13 +170,14 @@ class BlogController extends Controller
      *         @OA\JsonContent(
      *             required={"title", "content"},
      *
+     *             @OA\Property(property="id", type="integer", example="1"),
      *             @OA\Property(property="title", type="string", example="Updated Blog Title"),
      *             @OA\Property(property="content", type="string", example="Updated blog content")
      *         )
      *     ),
      *
      *     @OA\Response(
-     *         response=200,
+     *         response=201,
      *         description="Blog updated successfully"
      *     )
      * )
@@ -213,15 +197,15 @@ class BlogController extends Controller
         ]);
 
         return response()->json([
-            'status' => 200,
+            'status' => 201,
             'message' => 'Blog data fetched successfully',
             'data' => $blog,
-        ]);
+        ], 201);
     }
 
     /**
      * @OA\Delete(
-     *     path="/api/blogs/{id}",
+     *     path="/api/blog/{id}",
      *     summary="Delete a blog",
      *     tags={"Blog"},
      *     security={{"bearerAuth":{}}},

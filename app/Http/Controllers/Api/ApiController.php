@@ -12,16 +12,7 @@ use Illuminate\Support\Facades\Auth;
  * @OA\Info(
  *     title="API Documentation",
  *     version="1.0.0",
- *     description="API documentation for user authentication and profile management",
- *
- *     @OA\Contact(
- *         email="support@example.com"
- *     ),
- *
- *     @OA\License(
- *         name="Apache 2.0",
- *         url="http://www.apache.org/licenses/LICENSE-2.0.html"
- *     )
+ *     description="Api docs for OAuth2 and ratelimit",
  * )
  *
  * @OA\SecurityScheme(
@@ -35,7 +26,7 @@ class ApiController extends Controller
 {
     /**
      * @OA\Post(
-     *     path="/api/register",
+     *     path="/api/user/register",
      *     summary="Register a new user",
      *     tags={"Authentication"},
      *
@@ -65,6 +56,12 @@ class ApiController extends Controller
      */
     public function register(Request $request)
     {
+        if(User::where("email",$request->email)->first()){
+            return response()->json([
+                'status' => 409,
+                'message' => 'User with given email already exists',
+            ],201);
+        }
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|string|email|unique:users',
@@ -80,12 +77,12 @@ class ApiController extends Controller
         return response()->json([
             'status' => 201,
             'message' => 'User registered successfully',
-        ]);
+        ],201);
     }
 
     /**
      * @OA\Post(
-     *     path="/api/login",
+     *     path="/api/user/login",
      *     summary="Log in a user",
      *     tags={"Authentication"},
      *
@@ -153,7 +150,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Get(
-     *     path="/api/profile",
+     *     path="/api/user/me",
      *     summary="Get user profile",
      *     tags={"User"},
      *     security={{"bearerAuth":{}}},
@@ -184,7 +181,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/refresh-token",
+     *     path="/api/user/refresh-token",
      *     summary="Refresh user token",
      *     tags={"Authentication"},
      *     security={{"bearerAuth":{}}},
@@ -216,7 +213,7 @@ class ApiController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/api/logout",
+     *     path="/api/user/logout",
      *     summary="Log out a user",
      *     tags={"Authentication"},
      *     security={{"bearerAuth":{}}},

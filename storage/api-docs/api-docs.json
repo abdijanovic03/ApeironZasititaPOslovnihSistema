@@ -2,24 +2,17 @@
     "openapi": "3.0.0",
     "info": {
         "title": "API Documentation",
-        "description": "API documentation for user authentication and profile management",
-        "contact": {
-            "email": "support@example.com"
-        },
-        "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-        },
+        "description": "Api docs for OAuth2 and ratelimit",
         "version": "1.0.0"
     },
     "paths": {
-        "/api/register": {
+        "/api/user/register": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Register a new user",
-                "operationId": "82447091133210fc21daa20fe7bee91b",
+                "operationId": "583fe1aad07090166800c34b6891f00a",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -68,13 +61,13 @@
                 }
             }
         },
-        "/api/login": {
+        "/api/user/login": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Log in a user",
-                "operationId": "f6d04be1de7bb4a85327471c8d3d1e42",
+                "operationId": "d74a919affc5a20530e552dee261a5b7",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -122,13 +115,13 @@
                 }
             }
         },
-        "/api/profile": {
+        "/api/user/me": {
             "get": {
                 "tags": [
                     "User"
                 ],
                 "summary": "Get user profile",
-                "operationId": "69ce7486fd4bda371851be0b6459a145",
+                "operationId": "019e0f14398db49d5e869c4e5f05bfb9",
                 "responses": {
                     "200": {
                         "description": "User profile fetched successfully",
@@ -162,13 +155,13 @@
                 ]
             }
         },
-        "/api/refresh-token": {
+        "/api/user/refresh-token": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Refresh user token",
-                "operationId": "5441bc5d7565423ed0e88b1a7db85d66",
+                "operationId": "f34b60b2a98dac6bfe98edf5425fbc0e",
                 "responses": {
                     "201": {
                         "description": "Token refreshed successfully",
@@ -194,13 +187,13 @@
                 ]
             }
         },
-        "/api/logout": {
+        "/api/user/logout": {
             "post": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Log out a user",
-                "operationId": "ff979e4e699115485dc29fb752d8e3a5",
+                "operationId": "4aa0aa98b613bc56c3b35ada2285507e",
                 "responses": {
                     "200": {
                         "description": "User logged out successfully"
@@ -213,13 +206,13 @@
                 ]
             }
         },
-        "/api/blogs": {
+        "/api/blog": {
             "get": {
                 "tags": [
                     "Blog"
                 ],
                 "summary": "List all blogs",
-                "operationId": "1b4b4c4e9f375fcde2a22029abe7cdfd",
+                "operationId": "ce78f71c76738af19851a7cf80021bd5",
                 "responses": {
                     "200": {
                         "description": "Blogs fetched successfully",
@@ -239,18 +232,68 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Blog"
+                ],
+                "summary": "Update a blog",
+                "operationId": "44beb206d2324d9382144b281f6ce3f4",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title",
+                                    "content"
+                                ],
+                                "properties": {
+                                    "id": {
+                                        "type": "integer",
+                                        "example": "1"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Updated Blog Title"
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "example": "Updated blog content"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Blog updated successfully"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
                     "Blog"
                 ],
                 "summary": "Create a new blog",
-                "operationId": "d38082c746875bda54c804298a1e5b08",
+                "operationId": "45e249726d114139ac503fa86b06b410",
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "required": [
                                     "title",
@@ -264,11 +307,6 @@
                                     "content": {
                                         "type": "string",
                                         "example": "Blog content goes here"
-                                    },
-                                    "banner_image": {
-                                        "description": "Optional banner image",
-                                        "type": "string",
-                                        "format": "binary"
                                     }
                                 },
                                 "type": "object"
@@ -288,13 +326,13 @@
                 ]
             }
         },
-        "/api/blogs/mine": {
+        "/api/blog/me": {
             "get": {
                 "tags": [
                     "Blog"
                 ],
                 "summary": "List blogs created by the authenticated user",
-                "operationId": "ad0e6bc0fa108f29752ee9d99ac310c8",
+                "operationId": "145a8a96f2c6ea535d2eec5e5799bb2c",
                 "responses": {
                     "200": {
                         "description": "User's blogs fetched successfully"
@@ -307,13 +345,13 @@
                 ]
             }
         },
-        "/api/blogs/{id}": {
+        "/api/blog/{id}": {
             "get": {
                 "tags": [
                     "Blog"
                 ],
                 "summary": "Get a blog by ID",
-                "operationId": "15e5c15e63aaedab61181a14e29fd7fa",
+                "operationId": "01021423ca3c8ce7c04451c593c80fc0",
                 "parameters": [
                     {
                         "name": "id",
@@ -328,52 +366,6 @@
                     "200": {
                         "description": "Blog data fetched successfully"
                     }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Blog"
-                ],
-                "summary": "Update a blog",
-                "operationId": "d68b902641a9ecc9da1bc42ff77df8f0",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "title",
-                                    "content"
-                                ],
-                                "properties": {
-                                    "title": {
-                                        "type": "string",
-                                        "example": "Updated Blog Title"
-                                    },
-                                    "content": {
-                                        "type": "string",
-                                        "example": "Updated blog content"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Blog updated successfully"
-                    }
                 },
                 "security": [
                     {
@@ -386,7 +378,7 @@
                     "Blog"
                 ],
                 "summary": "Delete a blog",
-                "operationId": "cf36c3552dc0cebaf53915f84aa4d8f3",
+                "operationId": "0b87611d3ecd19402aedc1b7237a5561",
                 "parameters": [
                     {
                         "name": "id",

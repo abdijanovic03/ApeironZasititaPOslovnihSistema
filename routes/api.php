@@ -4,21 +4,21 @@ use App\Http\Controllers\Api\ApiController;
 use App\Http\Controllers\Api\BlogController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('register', [ApiController::class, 'register']);
-Route::post('login', [ApiController::class, 'login']);
+Route::post('user/register', [ApiController::class, 'register'])->middleware('throttle:auth');
+Route::post('user/login', [ApiController::class, 'login'])->middleware('throttle:auth');
 
 Route::group([
-    'middleware' => ['auth:api'],
+    'middleware' => ['auth:api', 'throttle:api'],
 ], function () {
 
-    Route::get('profile', [ApiController::class, 'profile']);
-    Route::get('refresh-token', [ApiController::class, 'refreshToken']);
-    Route::get('logout', [ApiController::class, 'logout']);
+    Route::get('user/me', [ApiController::class, 'profile']);
+    Route::get('user/refresh-token', [ApiController::class, 'refreshToken']);
+    Route::get('user/logout', [ApiController::class, 'logout']);
 
-    Route::post('create-blog', [BlogController::class, 'createBlog']);
-    Route::get('blogs', [BlogController::class, 'listBlog']);
-    Route::get('my-blogs', [BlogController::class, 'myBlog']);
+    Route::post('blog', action: [BlogController::class, 'createBlog']);
+    Route::get('blog', [BlogController::class, 'listBlog']);
+    Route::get('blog/me', [BlogController::class, 'myBlog']);
     Route::get('blog/{id}', [BlogController::class, 'getById']);
-    Route::post('update-blog', [BlogController::class, 'updateBlog']);
-    Route::delete('delete-blog/{id}', [BlogController::class, 'deleteBlog']);
+    Route::put('blog', [BlogController::class, 'updateBlog']);
+    Route::delete('blog/{id}', [BlogController::class, 'deleteBlog']);
 });
