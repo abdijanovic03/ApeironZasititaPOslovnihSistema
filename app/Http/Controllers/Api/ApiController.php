@@ -56,11 +56,11 @@ class ApiController extends Controller
      */
     public function register(Request $request)
     {
-        if(User::where("email",$request->email)->first()){
+        if (User::where('email', $request->email)->first()) {
             return response()->json([
                 'status' => 409,
                 'message' => 'User with given email already exists',
-            ],201);
+            ], 201);
         }
         $request->validate([
             'name' => 'required|string',
@@ -77,7 +77,7 @@ class ApiController extends Controller
         return response()->json([
             'status' => 201,
             'message' => 'User registered successfully',
-        ],201);
+        ], 201);
     }
 
     /**
@@ -180,7 +180,7 @@ class ApiController extends Controller
     }
 
     /**
-     * @OA\Post(
+     * @OA\Get(
      *     path="/api/user/refresh-token",
      *     summary="Refresh user token",
      *     tags={"Authentication"},
@@ -212,7 +212,7 @@ class ApiController extends Controller
     }
 
     /**
-     * @OA\Post(
+     * @OA\Get(
      *     path="/api/user/logout",
      *     summary="Log out a user",
      *     tags={"Authentication"},

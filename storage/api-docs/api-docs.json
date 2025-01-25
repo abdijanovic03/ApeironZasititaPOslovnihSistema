@@ -156,12 +156,12 @@
             }
         },
         "/api/user/refresh-token": {
-            "post": {
+            "get": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Refresh user token",
-                "operationId": "f34b60b2a98dac6bfe98edf5425fbc0e",
+                "operationId": "1f65232929252e770fd258f1f378fd29",
                 "responses": {
                     "201": {
                         "description": "Token refreshed successfully",
@@ -188,12 +188,12 @@
             }
         },
         "/api/user/logout": {
-            "post": {
+            "get": {
                 "tags": [
                     "Authentication"
                 ],
                 "summary": "Log out a user",
-                "operationId": "4aa0aa98b613bc56c3b35ada2285507e",
+                "operationId": "100c8e2b2bb80de70d9e2db9bc11344d",
                 "responses": {
                     "200": {
                         "description": "User logged out successfully"
