@@ -1,242 +1,163 @@
-Naravno! Evo kompletne dokumentacije za tvoj projekat, u formatu koji je pogodan za README fajl, sa svim objašnjenjima i uputstvima. Dodao sam mesta za screenshotove i detaljno objasnio implementaciju rate limiting-a, OAuth2 autentifikacije i Swagger dokumentacije.
+ApeironZasititaPoslovnihSistema
+Opis projekta
+Projekat Zaštita web aplikacije uz pomoć Laravel-a implementira zaštitu poslovnih sistema uz pomoć tehnologija kao što su rate limiting, OAuth2 autentifikaciju putem Passport i generisanje Swagger dokumentacije za API-a.
 
----
+Ključne tehnologije:
+Laravel
+Passport za OAuth2 autentifikaciju
+Swagger za automatsku dokumentaciju API-ja
+Rate Limiting za zaštitu od preopterećenja
+1. Rate Limiting Implementacija u Laravelu
+Šta je rate limiting?
+Rate limiting je zaštitna tehnika koja omogućava kontrolu broja zahtjeeva prema serveru u određenom vremenskom intervalu. U Laravelu je implementacija rate limiting-a relativno jednostavna i može se konfigurirati putem middleware-a.
 
-# **ApeironZasititaPOslovnihSistema**
+Kako je implementiran rate limiter u Laravelu?
+Default Rate Limiting: Dodavanjem novog provider-a u Laravel aplikaciju pod nazivom RouteServiceProvider, omogućujemo visoku kontrolu nad našim API pozivima, unutar ovog fajla smo definisali dva rate limiter-a, jedan za registraciju/login, što su javne rute koje bilo ko može gađati i tako ometati rad sistema, nju smo nazvali auth, te drugi rate limiter, api, koji je namjenjen za sve ostale rute koje su pod dodatnom zaštitom 0Auth2.0 sistema.
 
-## **Opis projekta**
+Objašnjenje:
+RouteServiceProvider
 
-Projekat **ApeironZasititaPOslovnihSistema** implementira zaštitu poslovnih sistema u Laravelu koristeći tehnologije kao što su **rate limiting**, **OAuth2** autentifikaciju putem **Passport** i generisanje **Swagger** dokumentacije za API.
+protected function configureRateLimiting(): void
+{
+    // Ograničava broj zahteva za login i registraciju na 5 po minuti
+    RateLimiter::for('auth', function (Request $request) {
+        return Limit::perMinute(5)->response(function () {
+            return response()->json(
+                ['Too many requests. Try again later.', 429],
+                429
+            );
+        });
+    });
 
-### **Ključne tehnologije**:
-- Laravel
-- Passport za OAuth2 autentifikaciju
-- Swagger za automatsku dokumentaciju API-ja
-- Rate Limiting za zaštitu od preopterećenja
+    // Ograničava broj zahteva za API rute na 10 po minuti
+    RateLimiter::for('api', function (Request $request) {
+        return Limit::perMinute(10)->response(function () {
+            return response()->json(
+                ['Too many requests. Try again later.', 429],
+                429
+            );
+        });
+    });
+}
+RateLimiter::for('auth', ...) i RateLimiter::for('api', ...) vraćaju poruku sa status kodom : 429: Too many requests. Try again later..
+RateLimiter::for('auth', ...) ograničava broj zahtjeva na 5.
+RateLimiter::for('api', ...) ograničava broj zahtjeva na 10.
+Primjer korištenje rate limiting-a u rutama
+Nakon što je rate limiting konfigurisan, koristimo ga u rutama kroz middleware:
 
----
-
-## **1. Rate Limiting Implementacija u Laravelu**
-
-### **Šta je rate limiting?**
-
-**Rate limiting** je zaštitna tehnika koja omogućava kontrolu broja zahteva prema serveru u određenom vremenskom intervalu. U Laravelu je implementacija rate limiting-a jednostavna i može se konfigurirati putem **middleware-a**.
-
-### **Kako je implementiran rate limiter u Laravelu?**
-
-1. **Default Rate Limiting**:
-   Laravel dolazi sa **default rate limiter-om** koji se može jednostavno konfigurirati u **`RouteServiceProvider`** ili direktno u kontrolerima. Laravel koristi `ThrottleRequests` middleware da bi zaštitio API rute od preopterećenja.
-
-2. **Konfiguracija rate limiter-a**:
-
-   U projektu, rate limiter je konfigurisan u fajlu **`RouteServiceProvider.php`**.
-
-   ```php
-   protected function configureRateLimiting(): void
-   {
-       // Ograničava broj zahteva za login i registraciju na 5 po minuti
-       RateLimiter::for('auth', function (Request $request) {
-           return Limit::perMinute(5)->response(function () {
-               return response()->json(
-                   ['Too many requests. Try again later.', 429],
-                   429
-               );
-           });
-       });
-
-       // Ograničava broj zahteva za API rute na 10 po minuti
-       RateLimiter::for('api', function (Request $request) {
-           return Limit::perMinute(10)->response(function () {
-               return response()->json(
-                   ['Too many requests. Try again later.', 429],
-                   429
-               );
-           });
-       });
-   }
-   ```
-
-### **Objašnjenje**:
-
-- **`RateLimiter::for('auth', ...)`**:
-   - Ovaj limiter se koristi za rute **registracije** i **login**.
-   - Ograničava broj zahteva na **5 zahteva po minuti**.
-   - Ako korisnik premaši ovaj broj, server će vratiti odgovor sa status kodom **429**: `Too many requests. Try again later.`.
-
-- **`RateLimiter::for('api', ...)`**:
-   - Ovaj limiter se koristi za sve **API rute** nakon što korisnik bude autentifikovan.
-   - Ograničava broj zahteva na **10 zahteva po minuti**.
-   - Ako korisnik premaši ovaj broj, server će vratiti odgovor sa status kodom **429**: `Too many requests. Try again later.`.
-
-### **Korišćenje rate limiting-a u rutama**
-
-Nakon što je rate limiting konfigurisan, koristiš ga u rutama kroz middleware:
-
-```php
 Route::post('user/register', [ApiController::class, 'register'])->middleware('throttle:auth');
-Route::post('user/login', [ApiController::class, 'login'])->middleware('throttle:auth');
 
 Route::group([
     'middleware' => ['auth:api', 'throttle:api'],
 ], function () {
-
     Route::get('user/me', [ApiController::class, 'profile']);
     Route::get('user/refresh-token', [ApiController::class, 'refreshToken']);
     Route::get('user/logout', [ApiController::class, 'logout']);
-
     Route::post('blog', action: [BlogController::class, 'createBlog']);
     Route::get('blog', [BlogController::class, 'listBlog']);
-    Route::get('blog/me', [BlogController::class, 'myBlog']);
-    Route::get('blog/{id}', [BlogController::class, 'getById']);
-    Route::put('blog', [BlogController::class, 'updateBlog']);
-    Route::delete('blog/{id}', [BlogController::class, 'deleteBlog']);
+Route::group(['middleware' => ['auth:api', 'throttle:api'], ...]):
+Ovaj middleware grupiše rute koje su zaštićene autentifikacijom (auth:api) i rate limitingom (throttle:api).
+2. Swagger Dokumentacija u Laravelu
+Šta je Swagger?
+Swagger omogućava automatsko generisanje interaktivne dokumentacije za API. Sa Swagger UI-om možeš testirati API direktno iz browser-a.
+
+Kako implementirati Swagger u Laravel?
+Instalacija potrebnih paketa:
+
+Da bi koristili Swagger u Laravelu, koristili smo darkaonline/l5-swagger paket:
+
+composer require darkaonline/l5-swagger
+Publish konfiguracije Swagger-a:
+
+Objavi konfiguraciju:
+
+php artisan vendor:publish --provider="L5Swagger\L5SwaggerServiceProvider"
+Generisanje Swagger dokumentacije:
+
+Swagger dokumentacija može se generisati automatski. Dodaj anotacije u tvoje rute i kontrolere:
+
+/**
+ * @OA\Get(
+ *     path="/api/user",
+ *     summary="Return current user",
+ *     @OA\Response(
+ *         response=200,
+ *         description="Successful response",
+ *     ),
+ * )
+ */
+Route::middleware('auth:api')->get('/user', function (Request $request) {
+    return $request->user();
 });
-```
+Da bi osigurali da se dokumentacija generiše, moramo pokrenuti ovu komandu
 
-### **Objašnjenje**:
+php artisan l5-swagger:generate
+Pristup Swagger dokumentaciji:
 
-- **`Route::post('user/register', ...)`** i **`Route::post('user/login', ...)`**:
-   - Ove rute koriste **middleware `throttle:auth`**, koji se odnosi na rate limiter za autentifikaciju. To znači da će korisnici moći da pošalju najviše **5 zahteva po minuti** za registraciju i login.
-   
-- **`Route::group(['middleware' => ['auth:api', 'throttle:api'], ...])`**:
-   - Ovaj **middleware** grupiše rute koje su zaštićene autentifikacijom (`auth:api`) i rate limitingom (`throttle:api`).
-   - API rute unutar ove grupe (kao što su `user/me`, `blog`, itd.) omogućavaju korisnicima da izvrše najviše **10 zahteva po minuti** nakon što se autentifikuju.
+Nakon što je sve podešeno, Swagger dokumentacija će biti dostupna na:
 
----
+http://localhost:8000/api/documentation
+3. OAuth2 Implementacija sa Laravel Passport
+Šta je OAuth2?
+OAuth2 je industrijski standard za autentifikaciju i autorizaciju korisnika.0Auth2 omogućava dobro korisničko iskustvo i sigurnost sitema kao i mogućnost povezivanja eksternih sistema na našu aplikaciju što je u većini slučajeva i više nego dovoljno za jednu web aplikaciju. Korištenjem Passport paketa u Laravelu, možemo efikasno i sigurno implementirati OAuth2 autentifikaciju.
 
-## **2. Swagger Dokumentacija u Laravelu**
+Kako implementirati OAuth2 sa Laravel Passport?
+Instalacija Laravel Passport-a:
 
-### **Šta je Swagger?**
+Da bi koristili Passport za OAuth2 autentifikaciju, prvo moraš instalirati paket:
 
-**Swagger** omogućava automatsko generisanje interaktivne dokumentacije za API. Sa Swagger UI-om možeš testirati API direktno iz browser-a.
+composer require laravel/passport
+Pokretanje Passport migracija:
 
-### **Kako implementirati Swagger u Laravel?**
+Passport dolazi sa potrebnim migracijama za kreiranje tabela u bazi podataka. Pokreni migracije komandom:
 
-1. **Instalacija potrebnih paketa**:
+php artisan migrate
+Publish konfiguracije Passport-a:
 
-   Da bi koristiš Swagger u Laravelu, koristi **`darkaonline/l5-swagger`** paket:
+Objavi konfiguraciju Passport-a:
 
-   ```bash
-   composer require darkaonline/l5-swagger
-   ```
+php artisan passport:install
+Kreiranje AuthController-a i ruta:
 
-2. **Objavljivanje konfiguracije Swagger-a**:
+Nakon toga, u config/auth.php, unutar sekcije guards, dodajemo novi guard kao u primjeru ispod
 
-   Objavi konfiguraciju:
-   ```bash
-   php artisan vendor:publish --provider="L5Swagger\L5SwaggerServiceProvider"
-   ```
+'api' => [ 'driver' => 'passport', 'provider' => 'users', ]
 
-3. **Generisanje Swagger dokumentacije**:
+Nakon toga, da bi osigurali da su naše rute žaštićenje, dodajemo grupu ruta u routes/api.php file sa middleware-om
 
-   Swagger dokumentacija može se generisati automatski. Dodaj anotacije u tvoje rute i kontrolere:
+```php
+ Route::group([
+     'middleware' => ['auth:api', 'throttle:api'],
+ ]
+Sa ovim smo omogućili 0Auth2 u našoj aplikaciji.
 
-   ```php
-   /**
-    * @OA\Get(
-    *     path="/api/user",
-    *     summary="Return current user",
-    *     @OA\Response(
-    *         response=200,
-    *         description="Successful response",
-    *     ),
-    * )
-    */
-   Route::middleware('auth:api')->get('/user', function (Request $request) {
-       return $request->user();
-   });
-   ```
+Zaključak
+Ovaj projekat koristi Laravel za implementaciju rate limiting-a, OAuth2 autentifikacije preko Passport-a i generisanje Swagger dokumentacije. Ove komponente poboljšavaju sigurnost i omogućavaju lako testiranje i integraciju sa drugim sistemima. Ova dokumentacija je kratki prikaz setup-a i koda koji je potreban da postigne ova funkcionalnost.
 
-4. **Pristup Swagger dokumentaciji**:
+Setup projekta
+Napomena: u repozitoriju se nalazi docker-compose.yml i dockerfile koji su potrebni za korištenje ovog sistema,
+Aplikacija se može koristiti i bez ovih servisa, u takvom slučaju nam treba Laravel instalacija lokalno i postgresql server za bazu, ova metoda nije preporucena te .env.example fajl nije postavljen prema tim kriterijama
+Ukoliko ste na windows sistemu, nakon setup-a docker desktopa, moguće su loše performanse u swagger dokumenatciji ukoliko nemate namješten WSL, druga opcija po kojoj je .env.example fajl postavljen je da koristite lokalnun laravel konfiguraciju i baze kroz docker.
+Za linux korisnike, kloniranje i setup docker-a i env fajla je sve što treba da se sistem pokrene i radi efikasno.
+Kloniraj repozitoriji:
 
-   Nakon što je sve podešeno, Swagger dokumentacija će biti dostupna na:
-   ```bash
-   http://localhost:8000/api/documentation
-   ```
+git clone https://github.com/abdijanovic03/ApeironZasititaPOslovnihSistema.git
+Pokreni docker container-e(opcionalno):
 
----
+docker compose up -d --build
+Instaliraj zavisnosti:
 
-## **3. OAuth2 Implementacija sa Laravel Passport**
+composer install
+Pokreni migracije za bazu:
 
-### **Šta je OAuth2?**
+php artisan migrate
+Kreiraj potrebne ključeve:
 
-**OAuth2** je industrijski standard za autentifikaciju i autorizaciju korisnika. Korišćenjem **Passport** paketa u Laravelu, možemo jednostavno implementirati OAuth2 autentifikaciju.
+php artisan passport:client --personal
+php artisan key:generate
+Pokreni aplikaciju:
 
-### **Kako implementirati OAuth2 sa Laravel Passport?**
+php artisan serve
+Posjeti Swagger dokumentaciju na http://localhost:8000/api/documentation.
 
-1. **Instalacija Laravel Passport-a**:
-   
-   Da bi koristiš **Passport** za OAuth2 autentifikaciju, prvo moraš instalirati paket:
-   ```bash
-   composer require laravel/passport
-   ```
-
-2. **Pokretanje Passport migracija**:
-   
-   Passport dolazi sa potrebnim migracijama za kreiranje tabela u bazi podataka. Pokreni migracije komandom:
-   ```bash
-   php artisan migrate
-   ```
-
-3. **Registrovanje Passport servisa**:
-
-   Nakon instalacije, registruj Passport servis u `config/app.php`:
-
-   ```php
-   'providers' => [
-       ...
-       Laravel\Passport\PassportServiceProvider::class,
-   ],
-   ```
-
-4. **Objavljivanje konfiguracije Passport-a**:
-   
-   Objavi konfiguraciju Passport-a:
-   ```bash
-   php artisan passport:install
-   ```
-
-5. **Kreiranje AuthController-a i ruta**:
-
-   Nakon što je Passport postavljen, kreiraj rutu za autentifikaciju putem OAuth2:
-
-   ```php
-   Route::post('login', 'AuthController@login');
-   Route::post('register', 'AuthController@register');
-   Route::middleware('auth:api')->get('/user', function (Request $request) {
-       return $request->user();
-   });
-   ```
-
----
-
-## **4. Kako koristiti projekat**
-
-1. Kloniraj projekat:
-   ```bash
-   git clone https://github.com/abdijanovic03/ApeironZasititaPOslovnihSistema.git
-   ```
-
-2. Instaliraj zavisnosti:
-   ```bash
-   composer install
-   npm install
-   ```
-
-3. Pokreni aplikaciju:
-   ```bash
-   php artisan serve
-   ```
-
-4. Poseti Swagger dokumentaciju na `http://localhost:8000/api/documentation`.
-
----
-
-## **Zaključak**
-
-Ovaj projekat koristi Laravel za implementaciju **rate limiting-a**, **OAuth2 autentifikacije** preko **Passport-a** i generisanje **Swagger** dokumentacije. Ove komponente poboljšavaju sigurnost i omogućavaju lako testiranje i integraciju sa drugim sistemima.
-
----
-
-**Napomena**: Dodaj odgovarajuće screenshotove u dokumentaciju na mesta označena sa **(Slika ovde)** kako bi prikazao rad sistema u praksi.
-
+Nakon registracije i logiranja, token koji dobijete postavite u swagger u gornjem desnom uglu.
